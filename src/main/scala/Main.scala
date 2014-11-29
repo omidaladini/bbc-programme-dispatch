@@ -9,9 +9,9 @@ object BBCProgrammeDispatch {
   import com.twitter.util.Time._
   import com.twitter.conversions.time._
 
-  def scheduleBroadcast(list: List[Programme]) {
+  val timer = new JavaTimer
 
-    val timer = new JavaTimer
+  def scheduleBroadcast(list: List[Programme]) {
 
     list.foreach( prog => {
       val format = new com.twitter.util.TimeFormat("yyyy-MM-dd'T'HH:mm:ss")
@@ -26,12 +26,29 @@ object BBCProgrammeDispatch {
     })
   }
 
-  def main(args: Array[String]) {
-
+  def scheduleToday = {
     programFeeds.foreach( p => {
       scheduleBroadcast(loadTodaysProgramme(p))
-      scheduleBroadcast(loadTomorrowsProgramme(p))
     })
+  }
+
+  val dayMillis = 86400 * 1000
+
+  def scheduleTomorrow : Unit = {
+    programFeeds.foreach( p => {
+      scheduleBroadcast(loadTodaysProgramme(p))
+    })
+
+    timer.doAt(Time.now + dayMillis.millis) {
+      scheduleTomorrow
+    }
+
+  }
+
+  def main(args: Array[String]) {
+
+    scheduleToday
+    scheduleTomorrow
 
   }
 }
