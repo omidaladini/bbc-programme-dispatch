@@ -10,6 +10,7 @@ object BBCProgrammeDispatch {
   import com.twitter.conversions.time._
 
   val timer = new JavaTimer
+  val onAirNextIntervals = List(10, 5, 3, 2, 1)
 
   def scheduleBroadcast(list: List[Programme]) {
 
@@ -22,6 +23,12 @@ object BBCProgrammeDispatch {
         timer.doAt(Time.now + sinceNow.millis) {
           DAB.send_onairnow(prog.pid, "On Air Now")
         }
+
+        onAirNextIntervals.foreach(interval => {
+          timer.doAt(Time.now + sinceNow.millis - (interval * 60 * 1000).millis) {
+            DAB.send_onairnext(prog.pid, "On Air Next")
+          }
+        })
       }
     })
   }
