@@ -39,6 +39,7 @@ object BBCProgrammeDispatch {
       scheduleBroadcast(loadTodaysProgramme(p))
     })
 
+    //TODO: day-boundary race conditions ?
     timer.doAt(Time.now + dayMillis.millis) {
       scheduleTomorrow
     }
