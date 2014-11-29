@@ -46,7 +46,7 @@ object Scheduler {
 
   def scheduleTomorrow : Unit = {
     programFeeds.foreach( p => {
-      scheduleBroadcast(loadTodaysProgramme(p))
+      scheduleBroadcast(loadTomorrowsProgramme(p))
     })
 
     //TODO: day-boundary race conditions ?
