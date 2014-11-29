@@ -14,6 +14,8 @@ object BBCProgrammeDispatch {
 
   val urlDateFormat = new SimpleDateFormat("/yyyy/mm/dd")
 
+  case class Programme(pid: String, start: String)
+
   def asJsonUrl(url: String) : String = {
     return url + ".json"
   }
@@ -23,13 +25,13 @@ object BBCProgrammeDispatch {
     Json.parse(jsonText)
   }
 
-  def loadTodaysProgramme(url: String) : JsValue = {
+  def loadTodaysFeed(url: String) : JsValue = {
     val today = Calendar.getInstance().getTime()
     val todayUrlSuffix = urlDateFormat.format(today)
     loadUrlAsJson(url + todayUrlSuffix)
   }
 
-  def loadTomorrowsProgramme(url: String) : JsValue = {
+  def loadTomorrowsFeed(url: String) : JsValue = {
     val calendar = Calendar.getInstance()
     calendar.add(java.util.Calendar.DAY_OF_MONTH, 1)
     val tomorrow = calendar.getTime
@@ -37,8 +39,29 @@ object BBCProgrammeDispatch {
     loadUrlAsJson(url + tomorrowUrlSuffix)
   }
 
+  def loadProgramms(feed : JsValue) : List[Programme] = {
+    implicit val programmeReader = Json.reads[Programme]
+    (feed \ "schedule" \ "day" \ "broadcasts").as[List[Programme]]
+  }
+
+  def loadTodaysProgramme(url : String) : List[Programme] = {
+    loadProgramms(loadTodaysFeed(url))
+  }
+
+  def loadTomorrowsProgramme(url : String) : List[Programme] = {
+    loadProgramms(loadTomorrowsFeed(url))
+  }
+
+  def printProgrammes(list: List[Programme]) {
+    list.foreach( p => println(s"Program ${p.pid} ${p.start}"))
+  }
+
   def main(args: Array[String]) {
 
+    println("Today's:")
+    programFeeds.foreach( p => {
+      printProgrammes(loadTodaysProgramme(p))
+    })
 
   }
 }
