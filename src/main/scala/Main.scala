@@ -1,68 +1,37 @@
 package com.omidaladini.bbcprogrammedispatch
 
-import play.api.libs.json._
-import scala.io.Source
-import java.text.SimpleDateFormat
-import java.util.Calendar
+import org.joda.time._
 
 object BBCProgrammeDispatch {
 
-  val programFeeds = List(
-    "http://www.bbc.co.uk/radio2/programmes/schedules",
-    "http://www.bbc.co.uk/5livesportsextra/programmes/schedules",
-    "http://www.bbc.co.uk/worldserviceradio/programmes/schedules")
+  import Programmes._
+  import com.twitter.util._
+  import com.twitter.util.Time._
+  import com.twitter.conversions.time._
 
-  val urlDateFormat = new SimpleDateFormat("/yyyy/mm/dd")
+  def scheduleBroadcast(list: List[Programme]) {
 
-  case class Programme(pid: String, start: String)
+    val timer = new JavaTimer
 
-  def asJsonUrl(url: String) : String = {
-    return url + ".json"
-  }
+    list.foreach( prog => {
+      val format = new com.twitter.util.TimeFormat("yyyy-MM-dd'T'HH:mm:ss")
+      val time = format.parse(prog.start)
+      val sinceNow = time.sinceNow.inNanoseconds / 1000000
 
-  def loadUrlAsJson(url: String) : JsValue = {
-    val jsonText = Source.fromURL(asJsonUrl(url)).mkString
-    Json.parse(jsonText)
-  }
-
-  def loadTodaysFeed(url: String) : JsValue = {
-    val today = Calendar.getInstance().getTime()
-    val todayUrlSuffix = urlDateFormat.format(today)
-    loadUrlAsJson(url + todayUrlSuffix)
-  }
-
-  def loadTomorrowsFeed(url: String) : JsValue = {
-    val calendar = Calendar.getInstance()
-    calendar.add(java.util.Calendar.DAY_OF_MONTH, 1)
-    val tomorrow = calendar.getTime
-    val tomorrowUrlSuffix = urlDateFormat.format(tomorrow)
-    loadUrlAsJson(url + tomorrowUrlSuffix)
-  }
-
-  def loadProgramms(feed : JsValue) : List[Programme] = {
-    implicit val programmeReader = Json.reads[Programme]
-    (feed \ "schedule" \ "day" \ "broadcasts").as[List[Programme]]
-  }
-
-  def loadTodaysProgramme(url : String) : List[Programme] = {
-    loadProgramms(loadTodaysFeed(url))
-  }
-
-  def loadTomorrowsProgramme(url : String) : List[Programme] = {
-    loadProgramms(loadTomorrowsFeed(url))
-  }
-
-  def printProgrammes(list: List[Programme]) {
-    list.foreach( p => println(s"Program ${p.pid} ${p.start}"))
+      if(sinceNow > 0) {
+        timer.doAt(Time.now + sinceNow.millis) {
+          DAB.send_onairnow(prog.pid, "On Air Now")
+        }
+      }
+    })
   }
 
   def main(args: Array[String]) {
 
-    println("Today's:")
     programFeeds.foreach( p => {
-      printProgrammes(loadTodaysProgramme(p))
+      scheduleBroadcast(loadTodaysProgramme(p))
+      scheduleBroadcast(loadTomorrowsProgramme(p))
     })
 
   }
 }
-
